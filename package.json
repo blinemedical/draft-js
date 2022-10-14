@@ -1,7 +1,7 @@
 {
-  "name": "draft-js",
+  "name": "@laerdallabs/draft-js",
   "description": "A React framework for building text editors.",
-  "version": "0.10.5",
+  "version": "0.10.6-korea-fix.1",
   "keywords": [
     "draftjs",
     "editor",
@@ -18,8 +18,9 @@
   ],
   "main": "lib/Draft.js",
   "style": "dist/Draft.css",
-  "repository": "facebook/draft-js",
+  "repository": "laerdallabs/draft-js",
   "license": "BSD-3-Clause",
+  "owner": "laerdallabs",
   "scripts": {
     "prepublish": "npm run build",
     "pretest": "node node_modules/fbjs-scripts/node/check-dev-engines.js package.json",
