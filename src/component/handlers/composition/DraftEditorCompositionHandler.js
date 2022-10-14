@@ -46,6 +46,9 @@ let resolved = false;
 let stillComposing = false;
 let textInputData = '';
 
+let beforeInputData = '';
+let compositionEndData = '';
+
 var DraftEditorCompositionHandler = {
   onBeforeInput: function(editor: DraftEditor, e: SyntheticInputEvent<>): void {
     textInputData = (textInputData || '') + e.data;
@@ -73,7 +76,8 @@ var DraftEditorCompositionHandler = {
    * twice could break the DOM, we only use the first event. Example: Arabic
    * Google Input Tools on Windows 8.1 fires `compositionend` three times.
    */
-  onCompositionEnd: function(editor: DraftEditor): void {
+  onCompositionEnd: function(editor: DraftEditor, e): void {
+    compositionEndData = (compositionEndData || '') + e.data;
     resolved = false;
     stillComposing = false;
     setTimeout(() => {
@@ -136,8 +140,13 @@ var DraftEditorCompositionHandler = {
     }
 
     resolved = true;
-    const composedChars = textInputData;
-    textInputData = '';
+    const composedChars =
+    beforeInputData.length > compositionEndData.length
+      ? beforeInputData
+      : compositionEndData;
+  
+    beforeInputData = '';
+    compositionEndData = '';
 
     const editorState = EditorState.set(editor._latestEditorState, {
       inCompositionMode: false,
@@ -153,6 +162,7 @@ var DraftEditorCompositionHandler = {
       !composedChars ||
       isSelectionAtLeafStart(editorState) ||
       currentStyle.size > 0 ||
+      !editorState.getSelection().isCollapsed() ||
       entityKey !== null;
 
     if (mustReset) {
@@ -162,15 +172,6 @@ var DraftEditorCompositionHandler = {
     editor.exitCurrentMode();
 
     if (composedChars) {
-      if (
-        DraftFeatureFlags.draft_handlebeforeinput_composed_text &&
-        editor.props.handleBeforeInput &&
-        isEventHandled(
-          editor.props.handleBeforeInput(composedChars, editorState),
-        )
-      ) {
-        return;
-      }
       // If characters have been composed, re-rendering with the update
       // is sufficient to reset the editor.
       const contentState = DraftModifier.replaceText(
