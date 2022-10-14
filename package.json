@@ -1,7 +1,7 @@
 {
   "name": "draft-js",
   "description": "A React framework for building text editors.",
-  "version": "0.10.6-korea-fix.0",
+  "version": "0.10.6-korea-fix.1",
   "keywords": [
     "draftjs",
     "editor",
@@ -18,7 +18,8 @@
   ],
   "main": "lib/Draft.js",
   "style": "dist/Draft.css",
-  "repository": "facebook/draft-js",
+  "repository": "https://github.com/laerdallabs/draft-js",
+  "owner": "laerdallabs",
   "license": "BSD-3-Clause",
   "scripts": {
     "prepublish": "npm run build",
@@ -69,12 +70,12 @@
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.6",
+    "gulp4-run-sequence": "^1.0.0",
     "jest": "^21.2.1",
     "prettier": "1.9.1",
     "react": "^16.0.0",
     "react-dom": "^16.0.0",
     "react-test-renderer": "^16.0.0",
-    "gulp4-run-sequence": "^1.0.0",
     "through2": "^2.0.1",
     "vinyl-buffer": "^1.0.0",
     "webpack-stream": "^3.0.0"
