@@ -7,21 +7,16 @@
  * of patent rights can be found in the PATENTS file in the same directory.
  *
  * @providesModule DraftEditorCompositionHandler
- * @format
- * @flow
+ *
  */
 
 'use strict';
 
-import type DraftEditor from 'DraftEditor.react';
-
-const DraftFeatureFlags = require('DraftFeatureFlags');
 const DraftModifier = require('DraftModifier');
 const EditorState = require('EditorState');
 const Keys = require('Keys');
 
 const getEntityKeyForSelection = require('getEntityKeyForSelection');
-const isEventHandled = require('isEventHandled');
 const isSelectionAtLeafStart = require('isSelectionAtLeafStart');
 
 /**
@@ -34,7 +29,7 @@ const isSelectionAtLeafStart = require('isSelectionAtLeafStart');
  * leads to composed characters being resolved and re-render occurring
  * sooner than we want.
  */
-const RESOLVE_DELAY = 20;
+var RESOLVE_DELAY = 1;
 
 /**
  * A handful of variables used to track the current composition and its
@@ -42,20 +37,22 @@ const RESOLVE_DELAY = 20;
  * possible to have compositions occurring in multiple editors simultaneously,
  * and it simplifies state management with respect to the DraftEditor component.
  */
-let resolved = false;
-let stillComposing = false;
-let textInputData = '';
+var resolved = false;
+var stillComposing = false;
+
+let beforeInputData = '';
+let compositionEndData = '';
 
 var DraftEditorCompositionHandler = {
-  onBeforeInput: function(editor: DraftEditor, e: SyntheticInputEvent<>): void {
-    textInputData = (textInputData || '') + e.data;
+  onBeforeInput: function onBeforeInput(editor, e) {
+    beforeInputData = (beforeInputData || '') + e.data;
   },
 
   /**
    * A `compositionstart` event has fired while we're still in composition
    * mode. Continue the current composition session to prevent a re-render.
    */
-  onCompositionStart: function(editor: DraftEditor): void {
+  onCompositionStart: function onCompositionStart(editor, e) {
     stillComposing = true;
   },
 
@@ -73,12 +70,13 @@ var DraftEditorCompositionHandler = {
    * twice could break the DOM, we only use the first event. Example: Arabic
    * Google Input Tools on Windows 8.1 fires `compositionend` three times.
    */
-  onCompositionEnd: function(editor: DraftEditor): void {
+  onCompositionEnd: function onCompositionEnd(editor, e) {
+    compositionEndData = (compositionEndData || '') + e.data;
     resolved = false;
     stillComposing = false;
-    setTimeout(() => {
+    setTimeout(function() {
       if (!resolved) {
-        DraftEditorCompositionHandler.resolveComposition(editor);
+        DraftEditorCompositionHandler.resolveComposition(editor, e);
       }
     }, RESOLVE_DELAY);
   },
@@ -88,7 +86,7 @@ var DraftEditorCompositionHandler = {
    * the arrow keys are used to commit, prevent default so that the cursor
    * doesn't move, otherwise it will jump back noticeably on re-render.
    */
-  onKeyDown: function(editor: DraftEditor, e: SyntheticKeyboardEvent<>): void {
+  onKeyDown: function onKeyDown(editor, e) {
     if (!stillComposing) {
       // If a keydown event is received after compositionend but before the
       // 20ms timer expires (ex: type option-E then backspace, or type A then
@@ -109,7 +107,7 @@ var DraftEditorCompositionHandler = {
    * characters that we do not want. `preventDefault` allows the composition
    * to be committed while preventing the extra characters.
    */
-  onKeyPress: function(editor: DraftEditor, e: SyntheticKeyboardEvent<>): void {
+  onKeyPress: function onKeyPress(editor, e) {
     if (e.which === Keys.RETURN) {
       e.preventDefault();
     }
@@ -130,29 +128,35 @@ var DraftEditorCompositionHandler = {
    * Resetting innerHTML will move focus to the beginning of the editor,
    * so we update to force it back to the correct place.
    */
-  resolveComposition: function(editor: DraftEditor): void {
+  resolveComposition: function resolveComposition(editor) {
     if (stillComposing) {
       return;
     }
 
     resolved = true;
-    const composedChars = textInputData;
-    textInputData = '';
 
-    const editorState = EditorState.set(editor._latestEditorState, {
+    const composedChars =
+      beforeInputData.length > compositionEndData.length
+        ? beforeInputData
+        : compositionEndData;
+    beforeInputData = '';
+    compositionEndData = '';
+
+    var editorState = EditorState.set(editor._latestEditorState, {
       inCompositionMode: false,
     });
 
-    const currentStyle = editorState.getCurrentInlineStyle();
-    const entityKey = getEntityKeyForSelection(
+    var currentStyle = editorState.getCurrentInlineStyle();
+    var entityKey = getEntityKeyForSelection(
       editorState.getCurrentContent(),
       editorState.getSelection(),
     );
 
-    const mustReset =
+    var mustReset =
       !composedChars ||
       isSelectionAtLeafStart(editorState) ||
       currentStyle.size > 0 ||
+      !editorState.getSelection().isCollapsed() ||
       entityKey !== null;
 
     if (mustReset) {
@@ -162,18 +166,9 @@ var DraftEditorCompositionHandler = {
     editor.exitCurrentMode();
 
     if (composedChars) {
-      if (
-        DraftFeatureFlags.draft_handlebeforeinput_composed_text &&
-        editor.props.handleBeforeInput &&
-        isEventHandled(
-          editor.props.handleBeforeInput(composedChars, editorState),
-        )
-      ) {
-        return;
-      }
       // If characters have been composed, re-rendering with the update
       // is sufficient to reset the editor.
-      const contentState = DraftModifier.replaceText(
+      var contentState = DraftModifier.replaceText(
         editorState.getCurrentContent(),
         editorState.getSelection(),
         composedChars,
