@@ -1,7 +1,7 @@
 {
   "name": "@laerdallabs/draft-js",
   "description": "A React framework for building text editors.",
-  "version": "0.10.6-korea-fix.1",
+  "version": "0.10.6-korea-fix.2",
   "keywords": [
     "draftjs",
     "editor",
